@@ -192,8 +192,8 @@ def main():
                     last_t = cur_time + 1000
             try:
                 # Send one byte to the cRIO:
-                # 0x00: No hot goal
-                # 0x01: Goal is HOT
+                # 0b0: No hot goal
+                # 0b1: Goal is HOT
                 write_bytes = bytearray()
                 v = goal_on << 0
                 write_bytes.append(v)
