@@ -45,8 +45,8 @@ WEBCAM_HEIGHT_PX = 360
 X_OFFSET = (WIDTH_PX - WEBCAM_WIDTH_PX)/2
 
 # The location of the calibration rectangle.
-CAL_UL = (X_OFFSET + WEBCAM_WIDTH_PX/2 - 20, 180)
-CAL_LR = (X_OFFSET + WEBCAM_WIDTH_PX/2 + 20, 220)
+#CAL_UL = (X_OFFSET + WEBCAM_WIDTH_PX/2 - 20, 180)
+#CAL_LR = (X_OFFSET + WEBCAM_WIDTH_PX/2 + 20, 220)
 
 # The location of the left rectangle.
 LEFT_UL = (240 + X_OFFSET, 250)
@@ -100,7 +100,6 @@ def draw_static(img, connected):
     bg[:,X_OFFSET:X_OFFSET+WEBCAM_WIDTH_PX,:] = img
     cv.rectangle(bg, LEFT_UL, LEFT_LR, (0, 255, 255), BOX_BORDER)
     cv.rectangle(bg, RIGHT_UL, RIGHT_LR, (0, 255, 255), BOX_BORDER)
-    cv.rectangle(bg, CAL_UL, CAL_LR, (255, 255, 255), BOX_BORDER)
     if connected:
         cv.rectangle(bg, (0, 0), (bg.shape[1]-1, bg.shape[0]-1), (0, 255, 0), CONNECTED_BORDER)
     else:
@@ -116,11 +115,10 @@ def detect_color(img, box):
 
 def detect_colors(img):
     ''' Return the average colors for the calibration, left, and right boxes. '''
-    cal = detect_color(img, (CAL_UL, CAL_LR))
     left = detect_color(img, (LEFT_UL, LEFT_LR))
     right = detect_color(img, (RIGHT_UL, RIGHT_LR))
 
-    return cal, left, right
+    return left, right
 
 def main():
     cv.namedWindow(WINDOW_NAME, 1)
@@ -160,22 +158,19 @@ def main():
         # Render the image onto our canvas.
         bg = draw_static(small_img, connected)
 
-        # Get the average color of each of the three boxes.
-        cal, left, right = detect_colors(cv.cvtColor(bg, cv.COLOR_BGR2HSV))
+        # Get the average color of the two boxes.
+        left, right = detect_colors(cv.cvtColor(bg, cv.COLOR_BGR2HSV))
 
-        # Get the difference between the left and right boxes vs. calibration.
-        left_dist = color_distance(left, cal)
-        right_dist = color_distance(right, cal)
+        # Get the difference between the left and right boxes
+        dist = color_distance(left, right)
 
         # Check the difference.
-        left_on = left_dist < max_color_distance
-        right_on = right_dist < max_color_distance
+        goal_on = dist > max_color_distance
 
         # If we detect a hot goal, color that side of the widget.
         B = CONNECTED_BORDER-5
-        if left_on:
+        if goal_on:
             color_far(bg, (B, B), ((WIDTH_PX-WEBCAM_WIDTH_PX)/2-B, WEBCAM_HEIGHT_PX-B))
-        if right_on:
             color_far(bg, ((WIDTH_PX+WEBCAM_WIDTH_PX)/2+B, B), (WIDTH_PX-B, WEBCAM_HEIGHT_PX-B))
 
         # Throttle the output
@@ -191,16 +186,16 @@ def main():
                     # if we are disconnected.
                     s.settimeout(.1)
                     s.connect((HOST, PORT))
+                    print "CONNECTED!"
                 except:
                     print "failed to reconnect"
                     last_t = cur_time + 1000
             try:
                 # Send one byte to the cRIO:
-                # 0x01: Right on
-                # 0x02: Left on
-                # 0x03: Both on
+                # 0x00: No hot goal
+                # 0x01: Goal is HOT
                 write_bytes = bytearray()
-                v = (left_on << 1) | (right_on << 0)
+                v = goal_on << 0
                 write_bytes.append(v)
                 s.send(write_bytes)
                 last_t = cur_time
