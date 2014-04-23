@@ -35,7 +35,7 @@ HOST, PORT = "localhost", 1180
 WINDOW_NAME = "ZekeVision"
 
 # Width of the entire widget
-WIDTH_PX = 1000
+WIDTH_PX = 860
 
 # Dimensions of the webcam image (it will be resized to this size)
 WEBCAM_WIDTH_PX = 640
@@ -49,12 +49,12 @@ X_OFFSET = (WIDTH_PX - WEBCAM_WIDTH_PX)/2
 #CAL_LR = (X_OFFSET + WEBCAM_WIDTH_PX/2 + 20, 220)
 
 # The location of the left rectangle.
-LEFT_UL = (240 + X_OFFSET, 250)
-LEFT_LR = (310 + X_OFFSET, 300)
+LEFT_UL = (250 + X_OFFSET, 250)
+LEFT_LR = (285 + X_OFFSET, 285)
 
 # The location of the right rectangle.
-RIGHT_UL = (WEBCAM_WIDTH_PX - 310 + X_OFFSET, 250)
-RIGHT_LR = (WEBCAM_WIDTH_PX - 240 + X_OFFSET, 300)
+RIGHT_UL = (WEBCAM_WIDTH_PX - 285 + X_OFFSET, 250)
+RIGHT_LR = (WEBCAM_WIDTH_PX - 250 + X_OFFSET, 285)
 
 # Constants for drawing.
 BOX_BORDER = 3
@@ -94,12 +94,14 @@ def color_far(img, ul, lr):
     ''' Light up a bright yellow rectangle if the color distance is large. '''
     cv.rectangle(img, ul, lr, (0, 255, 255), -1)
 
-def draw_static(img, connected):
+def draw_static(img, connected, dist, exp):
     ''' Draw the image and boxes. '''
     bg = np.zeros((img.shape[0], WIDTH_PX, 3), dtype=np.uint8)
     bg[:,X_OFFSET:X_OFFSET+WEBCAM_WIDTH_PX,:] = img
     cv.rectangle(bg, LEFT_UL, LEFT_LR, (0, 255, 255), BOX_BORDER)
     cv.rectangle(bg, RIGHT_UL, RIGHT_LR, (0, 255, 255), BOX_BORDER)
+    cv.putText(bg, dist, (125, 50), cv.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 255), 2, 8, 0)
+    cv.putText(bg, exp, (700, 50), cv.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 255), 2, 8, 0)
     if connected:
         cv.rectangle(bg, (0, 0), (bg.shape[1]-1, bg.shape[0]-1), (0, 255, 0), CONNECTED_BORDER)
     else:
@@ -133,7 +135,7 @@ def main():
 
     # Manually set the exposure, because a lot of webcam drivers will overexpose
     # the image and lead to poor separation between foreground and background.
-    exposure = -4
+    exposure = -6
     last_exposure = exposure
     capture.set(15, exposure)  # 15 is the enum value for CV_CAP_PROP_EXPOSURE
 
@@ -156,7 +158,7 @@ def main():
         small_img = cv.flip(cv.resize(img, (WEBCAM_WIDTH_PX, WEBCAM_HEIGHT_PX)), 1)
 
         # Render the image onto our canvas.
-        bg = draw_static(small_img, connected)
+        bg = draw_static(small_img, connected, str(max_color_distance), str(exposure))
 
         # Get the average color of the two boxes.
         left, right = detect_colors(cv.cvtColor(bg, cv.COLOR_BGR2HSV))
@@ -227,8 +229,8 @@ def main():
             max_color_distance -= 1
 
         # Enforce bounds.
-        if exposure < -7:
-            exposure = -7
+        if exposure < -8:
+            exposure = -8
         elif exposure > -1:
             exposure = -1
 
