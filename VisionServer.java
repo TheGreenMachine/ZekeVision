@@ -9,7 +9,6 @@ public class VisionServer implements Runnable {
 	private static Thread visionServerThread;
 	private static ArrayList<Thread> connections = new ArrayList<Thread>();
 
-	private static boolean leftGoal = false;
 	private static boolean isGoalHot = false;
 	private static double lastHeartbeatTime = -1.0;
     private static int hotGoalCount = 0;
@@ -17,6 +16,10 @@ public class VisionServer implements Runnable {
 	public VisionServer() {
 		visionServerThread = new Thread(this);
 	}
+
+	private static void updateCounts() {
+        hotGoalCount++;
+    }
 
 	public void run() {
 		ServerSocket serverSocket = null;
@@ -49,6 +52,7 @@ public class VisionServer implements Runnable {
 		while(true) {
 			if(System.currentTimeMillis() - lastTime > period) {
 				System.out.println("Goal Status:  " + (isGoalHot ? "HOT!!!" : "cold"));
+				System.out.println("Goal Count: " + hotGoalCount);
 				lastTime = System.currentTimeMillis();
 			}
 		}
@@ -76,6 +80,8 @@ public class VisionServer implements Runnable {
                             byte reading = b[i];
                             boolean goalStatus = (reading << 0) > 0;
                             VisionServer.isGoalHot = goalStatus;
+                            if(goalStatus)
+                            	VisionServer.updateCounts();
                         }
                         lastHeartbeat = System.currentTimeMillis() / 1000.0;
                         VisionServer.this.lastHeartbeatTime = lastHeartbeat;
